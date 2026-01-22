@@ -6,3 +6,5 @@ logs/
 ___TEST/
 _EXAMPLES/
 !test_scripts.sh
+custom_scripts/
+figures/
