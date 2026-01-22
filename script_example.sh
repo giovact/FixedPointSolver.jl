@@ -1,4 +1,4 @@
-dir=_EXAMPLES
+dir=__EXAMPLES
 npointsInt=1000
 bound=6.0
 tol=1e-6
@@ -7,8 +7,8 @@ damp=0.9
 niter=5000
 
 julia -t auto scripts/explore_multipleinits.jl --Model HopfieldExample \
-                                                --param_loop %alpha% 0.002 0.005 0.15 linear \
-                                                --param_loop %beta% 0.02 0.005 1.2 reciprocal \
+                                                --param_loop %alpha% 0.002 0.15 step 0.005  linear \
+                                                --param_loop %beta% 0.02 1.2 step 0.005 reciprocal \
                                                 --OPnames M Q \
                                                     --OP0 1.0 1.0 \
                                                     --OP0 0.0 0.99 \
