@@ -1,5 +1,5 @@
 
-dir="___TEST"
+dir="__TEST"
 nthreads=8
 
 rm -rf $dir
