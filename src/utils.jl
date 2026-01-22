@@ -4,7 +4,7 @@ tovec(x, n) = [2*((x>>i)&1)-1 for i=0:n-1]
 Herf(x) = 0.5 * erfc(sqrt(0.5) * x)
 logHerf(x) = logerfc(sqrt(0.5)*x) - log(2.0)
 log2cosh(x) = abs(x) + log1p(exp(-2abs(x)))
-logcosh(x) = abs(x) + log1p(exp(-2abs(x))) - log(2.0)
+logcosh(x) = log2cosh(x) - log(2.0)
 
 threshold_to_0(x,ε) = ifelse(abs(x)<ε,0,x)
 
