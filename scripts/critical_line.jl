@@ -152,8 +152,9 @@ starting_info = """
 ******************************* CRITICAL LINE ******************************* 
 Model: $(string(Model; separator = " "))
 Fixed parameters: $(params_to_textstring(tuple_params;separator="; ",exclude=[ploop;pscan],equalsymbol="="))
+Critical line name $(p_args["critical_line_name"])
 Loop parameters: $ploop,  number of parallel scan is $(length(ploop_values)) --- Extrema = $(extrema(ploop_values))
-scan parameter: $pscan ###  protocol = $(p_args["protocol"])   --- function $function_name
+scan parameter: $pscan ###  protocol = $(p_args["protocol"])   --- function $function_name  
 *****************************************************************************
 """
 print_and_log(starting_info,critical_line_log_file)
