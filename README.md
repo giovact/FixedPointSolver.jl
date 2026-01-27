@@ -57,4 +57,4 @@ In the folder `scripts/` there are 3 files that perform different parallel opera
 
 Remember to launch any one of the above scripts with option `julia -t $nthreads ` or `julia -t auto ` when using either one of these for faster computation.  
 
-Documentation is still lacking. If interested in using the repository, contact me at gcatania@ucm.es
+Documentation is still lacking. If interested in using the repository, contact me at gcatania@ifisc.uib-csic.es
