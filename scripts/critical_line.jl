@@ -118,7 +118,7 @@ ploop_values = parse_inputarg_param_loop(p_args["param_loop"],ModelType)[2]
 
 function_name = p_args["function"]
 
-function singlerun(ModelType,ploop,ploop_v,pscan,tuple_params, p_args, critical_line_log_file)
+function singlerun(ModelType,ploop,ploop_v,pscan,tuple_params, p_args, critical_line_log_file,iploop)
     thid = Threads.threadid()
     
     X = parse_integration_method(p_args)
@@ -144,6 +144,9 @@ function singlerun(ModelType,ploop,ploop_v,pscan,tuple_params, p_args, critical_
 
     
     writedlm(string(dir,"/Scans/",filepath, "_RES.txt"), [ploop_v; out.pfinal; out.pfinallastconv; teps] )
+    if iploop==1
+        writedlm(string(dir,"/Scans/",filepath, "_names.txt"), out.names )
+    end
 
     log_message(string("on thread ",thid, "Line -> ",p_args["critical_line_name"]," on Model = ",string(ModelType)," -> params  ",print_tuple_params(Model; exclude = [pscan]), " --> critical ", pscan,"= ", (out.pfinal, out.pfinallastconv), " Init cond.  ",Ostart, " elapsed=",teps," seconds" ),critical_line_log_file)
 end
@@ -174,7 +177,7 @@ progress=set_progress_bar(number_jobs,"critical_line")
 timestart = Dates.now()
 
 Threads.@threads for iploop in job_idx
-    singlerun(ModelType,ploop,ploop_values[iploop],pscan,tuple_params,p_args,critical_line_log_file)
+    singlerun(ModelType,ploop,ploop_values[iploop],pscan,tuple_params,p_args,critical_line_log_file,iploop)
     # Update the progress bar with a message showing completed jobs
     Threads.atomic_add!(completed_jobs, 1)
     next!(progress; showvalues = [(:jobs_completed, "$(completed_jobs[]) / $number_jobs" )] )
@@ -198,6 +201,7 @@ X = parse_integration_method(p_args)
 upordown = p_args["increase"] ? "increase" : "decrease"
 
 single_file = zeros(4)
+names_obs = Vector{String}(undef,0)
 progress = Progress(length(ploop_values), desc="Wrapping", barlen=settings["barlen"],color = progress_color["critical_line"], barglyphs=BarGlyphs("[=> ]"))
 for iploop in eachindex(ploop_values)
     ploop_v = ploop_values[iploop]
@@ -209,9 +213,18 @@ for iploop in eachindex(ploop_values)
     teps_stats[iploop] = single_file[4]
     rm(string(dir,"/Scans/",filepath, "_RES.txt"))
 
+
     if p_args["saveeachscan"]
         scans[ploop_v] = readdlm(string(dir,"/Scans/",filepath, ".txt"))
+        if iploop==1
+            names_obs .= readdlm(string(dir,"/Scans/",filepath, "_names.txt"))
+        end
     end
+
+    if iploop==1
+        rm(string(dir,"/Scans/",filepath, "_names.txt"))
+    end
+    
     rm(string(dir,"/Scans/",filepath, ".txt"))
     next!(progress)
 end
@@ -229,6 +242,7 @@ save(string(dir, "/",final_path,".jld"), "input_args", p_args,
                                         "time_end", timeend,
                                         "teps_stats",teps_stats, 
                                         "elapsed",elapsed,
+                                        "names_obs",names_obs,
                                         "host",get_hostname(),                                        
                                         "git_info",get_commit_info()
 )
