@@ -80,7 +80,7 @@ function scanning(Modelstart::TM,scan::Scan,X::TI;
         end
 
         #printprogress && ProgressMeter.next!(prog; showvalues = [print_op_withparam(Model,param); (:f,Model.aux["f"]); (:iter,iter); (:conv, conv)] )
-        printprogress && ProgressMeter.next!(prog; showvalues = print_scanning(Model, param, iter, conv, tosave) )
+        printprogress && ProgressMeter.next!(prog; showvalues = print_scanning(Model, param, iter, conv, vareps, tosave) )
 
     end
     
@@ -92,10 +92,10 @@ function scanning(Modelstart::TM,scan::Scan,X::TI;
 end
 
 
-function print_scanning(Model::TM,param::Symbol, iter::Int, conv::Int,tosave::Vector{String}) where {TM <: FPModel}
+function print_scanning(Model::TM,param::Symbol, iter::Int, conv::Int,vareps::FT, tosave::Vector{String}) where {TM <: FPModel}
     
-    isempty(tosave) && return [print_op_withparam(Model,param); (:f,Model.aux["f"]); (:iter,iter); (:conv, conv)]
-    vcat([print_op_withparam(Model,param); (:f,Model.aux["f"]); (:iter,iter); (:conv, conv); ], [(Symbol(x),Model.aux[x]) for x in tosave])
+    isempty(tosave) && return [print_op_withparam(Model,param); (:f,Model.aux["f"]); (:iter,iter); (:conv, conv); (:ε, vareps)]
+    vcat([print_op_withparam(Model,param); (:f,Model.aux["f"]); (:iter,iter); (:conv, conv); (:ε, vareps); ], [(Symbol(x),Model.aux[x]) for x in tosave])
 end
 
 
