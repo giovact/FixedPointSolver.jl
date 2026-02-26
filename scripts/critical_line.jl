@@ -195,13 +195,12 @@ print_and_log(string("TOTAL TIME ELAPSED: ", elapsed), critical_line_log_file)
 values_final = zeros(length(ploop_values),3)
 teps_stats = zeros(length(ploop_values))
 scans = Dict{ploop_type,Matrix}()
-
+names_obs = Dict()
 
 X = parse_integration_method(p_args)
 upordown = p_args["increase"] ? "increase" : "decrease"
 
 single_file = zeros(4)
-names_obs = Vector{String}(undef,0)
 progress = Progress(length(ploop_values), desc="Wrapping", barlen=settings["barlen"],color = progress_color["critical_line"], barglyphs=BarGlyphs("[=> ]"))
 for iploop in eachindex(ploop_values)
     ploop_v = ploop_values[iploop]
@@ -217,7 +216,7 @@ for iploop in eachindex(ploop_values)
     if p_args["saveeachscan"]
         scans[ploop_v] = readdlm(string(dir,"/Scans/",filepath, ".txt"))
         if iploop==1
-            names_obs .= readdlm(string(dir,"/Scans/",filepath, "_names.txt"))
+            names_obs["names_obs"] = readdlm(string(dir,"/Scans/",filepath, "_names.txt"))
         end
     end
 
@@ -242,7 +241,7 @@ save(string(dir, "/",final_path,".jld"), "input_args", p_args,
                                         "time_end", timeend,
                                         "teps_stats",teps_stats, 
                                         "elapsed",elapsed,
-                                        "names_obs",names_obs,
+                                        "names_obs",names_obs["names_obs"],
                                         "host",get_hostname(),                                        
                                         "git_info",get_commit_info()
 )
