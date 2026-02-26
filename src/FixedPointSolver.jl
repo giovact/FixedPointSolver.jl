@@ -1,6 +1,6 @@
 using ExtractMacro, FastGaussQuadrature, LinearAlgebra, Statistics, ProgressMeter, StatsBase, Distributions, OrderedCollections 
 using NamedArrays, Printf, ValueHistories, SpecialFunctions, Intervals, BigCombinatorics, MultinomialSeries
-using DelimitedFiles, InteractiveUtils, Roots, OffsetArrays, UniformIsingModels
+using DelimitedFiles, InteractiveUtils, Roots, OffsetArrays #UniformIsingModels
 using QuadGK, Trapz, Cubature, HCubature, PrettyTables, Dates
 
 
