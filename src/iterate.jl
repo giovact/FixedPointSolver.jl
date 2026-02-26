@@ -77,7 +77,7 @@ function solve_SPequations!(Model::TM,Xstart::TI;
     end
     compute_stuff!(Model,X)
     printprogress && ProgressMeter.finish!(prog)
-    showinfo && @info string(" NOT Converged in $niter iterations with $K ")
+    showinfo && @info string(" NOT Converged in $niter iterations with $K . Final ε= $ε ")
 
     return wrap_output(0,ε, niter, history, savehistory)
 end
