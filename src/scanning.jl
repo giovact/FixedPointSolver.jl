@@ -44,7 +44,7 @@ function scanning(Modelstart::TM,scan::Scan,X::TI;
     pvalues_sorted  =  reverseordering ? reverse(pvalues) : pvalues
     
     O0 = deepcopy(Modelstart.O)
-    Model = create_model(deepcopy(Modelstart), reset_parameter(Modelstart.params, param,overridetype ? Modelstart.params[param] : -Inf ) ) # dummy. Such that Model.O  == Model.Ostart
+    Model = create_model(deepcopy(Modelstart), reset_parameter(Modelstart.params, param,overridetype ? Modelstart.params[param] : dumb(typeof(pvalues[1])) ) ) # dummy. Such that Model.O  == Model.Ostart
     @assert typeof(Model) == typeof(Modelstart) #debug
     @assert Model.O == Modelstart.O
 

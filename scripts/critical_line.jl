@@ -148,7 +148,10 @@ function singlerun(ModelType,ploop,ploop_v,pscan,tuple_params, p_args, critical_
         writedlm(string(dir,"/Scans/",filepath, "_names.txt"), out.names )
     end
 
-    log_message(string("on thread ",thid, "Line -> ",p_args["critical_line_name"]," on Model = ",string(ModelType)," -> params  ",print_tuple_params(Model; exclude = [pscan]), " --> critical ", pscan,"= ", (out.pfinal, out.pfinallastconv), " Init cond.  ",Ostart, " elapsed=",teps," seconds" ),critical_line_log_file)
+    #log_message(string("th_id ",thid," -> params  ",print_tuple_params(Model; exclude = [pscan]), " --> critical ", pscan,"= ", (round(out.pfinal,digits=6), round(out.pfinallastconv,digits=6)), " elapsed=",round(teps,4)," seconds" ),critical_line_log_file)
+    log_message(string("th_id ",thid," -> params  ",print_tuple_params(Model; exclude = [pscan] , n_digits = 4), " --> result ", 
+                        pscan," = ", (round(out.pfinal,digits=6), round(out.pfinallastconv,digits=6))
+                        )  ,critical_line_log_file)
 end
 
 starting_info = """

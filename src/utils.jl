@@ -98,11 +98,11 @@ function print_params(Model::TM;separator::String = "_",exclude::Vector{Symbol}=
 end
 
 
-function print_tuple_params(Model::TM;exclude::Vector{Symbol}= Symbol[]) where TM <: FPModel 
+function print_tuple_params(Model::TM;exclude::Vector{Symbol}= Symbol[], n_digits = 100 ) where TM <: FPModel 
     vec_params = []
     for k in keys(Model.params)
         if k ∉ exclude
-            push!(vec_params,(;k=>Model.params[k]))
+            push!(vec_params,(;k=>round(Model.params[k], digits = n_digits)))
         end
     end
     return merge(vec_params...)

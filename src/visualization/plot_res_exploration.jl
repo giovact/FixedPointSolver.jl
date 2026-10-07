@@ -186,7 +186,6 @@ function add_rgb_to_discrete_pcolormesh(in, cm_conv, values::Vector{Int})
 
     end
     
-    
     return out
     
 end

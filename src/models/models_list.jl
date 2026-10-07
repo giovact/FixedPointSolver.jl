@@ -71,11 +71,9 @@ include("RestrictedBoltzmannMachines/RBMLowLoadRepeatedHidden.jl")
 
 
 ######################################## PERCEPTRON WITH POTENTIALS  #####################################
-abstract type Perceptron  <: FPModel
-end
+abstract type Perceptron <: FPModel end
 
-abstract type Potential
-end
+abstract type Potential end
 
 include("Perceptron_with_Potentials/Potentials/potentials.jl")
 include("Perceptron_with_Potentials/perceptron_utils.jl")
@@ -108,3 +106,19 @@ include("Perceptron_with_Potentials/BinaryPerceptron1RSBDyntheta1NoWick.jl")
 # example model for docs
 include("examples/HopfieldExample.jl")
 
+
+include("FederatedHopfields/FederatedHopfield2.jl")
+include("FederatedHopfields/FederatedHopfield2SameAlpha.jl")
+
+include("Perceptron/SymmetricPerceptronTSQuenchedGibbsfixedR.jl")
+include("Perceptron/SymmetricPerceptronTSQuenchedGibbsV1.jl")
+include("Perceptron/SymmetricPerceptronTSQuenchedLinear.jl")
+
+include("Perceptron/SymmetricPerceptronTSAnnealedGibbsMine.jl")
+include("Perceptron/SymmetricPerceptronTSQuenchedGibbs.jl")
+
+include("FederatedHopfields/v2_Corrupted_y2_RSB1_gianluca.jl")
+include("FederatedHopfields/Corrupted.jl")
+include("FederatedHopfields/HopfieldTS.jl")
+include("FederatedHopfields/CoupledHopfieldTS.jl")
+include("FederatedHopfields/Corrupted_TCpoint.jl")
