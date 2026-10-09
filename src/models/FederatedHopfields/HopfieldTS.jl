@@ -80,7 +80,7 @@ function free_energy(Model::HopfieldTS,X::TI) where TI <: IntegrationMethod
 
     logdetK = (params[:α]/(2*params[:β])) * ( log(aux["ΔS"]) +  log(aux["ΔT"]) )
 
-    other =  0.5*params[:α]* ( (O[:Q] / aux["ΔS"]) + (params[:βT]*O[:M]^2 / aux["Δ"]) )  
+    other =  0.5*params[:α]* ( (O[:Q] / aux["ΔS"]) + (params[:βT]*params[:r]^2*O[:M]^2 / aux["Δ"]) )  
 
     entropy = 0.5 * ( exprEntropy(Model,X,1) + exprEntropy(Model,X,-1) )
     

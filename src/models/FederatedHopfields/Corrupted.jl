@@ -164,10 +164,10 @@ _isExampleR(Model::Corrupted,X::TI,Oold::NamedVec,tol::Float64) where TI <: Inte
 _isParamagnetic(Model::Corrupted,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod = Model.O[:M] < 1e-3
 
 
-_is_RS_stable(Model::Corrupted,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod  = min(Model.aux["replicon_parallel_parallel"], Model.aux["replicon_perpernd_perpernd"]) > 0 
+#_is_RS_stable(Model::Corrupted,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod  = min(Model.aux["replicon_parallel_parallel"], Model.aux["replicon_perpernd_perpernd"]) > 0 
+_is_RS_stable(Model::Corrupted,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod  = Model.aux["max_Lambda"] < 1.0
 
-
-function eigs_dat(Model::Corrupted,X::TracedSpin1HalfIntegral{TI}) where TI <: IntegrationMethod
+function eigs_dat!(Model::Corrupted,X::TracedSpin1HalfIntegral{TI}) where TI <: IntegrationMethod
     @extract Model : aux  params
     exprOconj!(Model)     
     inner_trace(Model, X)
@@ -180,21 +180,96 @@ function eigs_dat(Model::Corrupted,X::TracedSpin1HalfIntegral{TI}) where TI <: I
     replicon_perpernd_perpernd = 1 - pre_factor * ( (1 - params[:r]^2 )^2 / aux["Δ"]^2 ) * chi_perpernd_perpernd
     replicon_parallel_perpend = 1 - pre_factor * ( ((1 + (params[:y] - 1)*params[:r]^2 ) * (1-params[:r]^2)) / (aux["Δ"] * aux["Δy"]) ) * chi_parallel_perpend
     
-    return replicon_parallel_parallel, replicon_perpernd_perpernd, replicon_parallel_perpend
-end
-
-
-function compute_aux!(Model::Corrupted,X::TracedSpin1HalfIntegral{TI}) where TI <: IntegrationMethod
-    @extract Model : aux  params
-
-    replicon_parallel_parallel, replicon_perpernd_perpernd, replicon_parallel_perpend = eigs_dat(Model, X)
     aux["replicon_parallel_parallel"] = replicon_parallel_parallel 
     aux["replicon_perpernd_perpernd"] = replicon_perpernd_perpernd
     aux["replicon_parallel_perpend"] = replicon_parallel_perpend
-
 
     aux["is_CS_ok"]  = aux["replicon_parallel_perpend"] > min(aux["replicon_parallel_parallel"], aux["replicon_perpernd_perpernd"])
     
     aux["is_RS_stable"] = min(aux["replicon_parallel_parallel"], aux["replicon_perpernd_perpernd"]) > 0 
     
 end
+
+
+function compute_aux!(Model::Corrupted,X::TracedSpin1HalfIntegral{TI}) where TI <: IntegrationMethod
+    @extract Model : aux  params
+
+#    eigs_dat!(Model, X)
+    eigs_dat_NEW!(Model,X)
+end
+
+
+
+
+function eigs_dat_NEW!(Model::Corrupted,X::TracedSpin1HalfIntegral{TI}) where TI <: IntegrationMethod
+    @extract Model : aux  params
+    exprOconj!(Model)     
+    inner_trace(Model, X)
+
+
+    prefactor = (params[:α] * params[:β]^2) / params[:y]^2 
+    aux["c_∥"] = 1 + (params[:y]-1)*params[:r]^2
+    aux["c_⟂"] = 1-params[:r]^2
+    aux["g"] = params[:y] -1 + params[:r]^2
+
+    aux["k_∥∥"] = integrate(X.X, (1 .+ (params[:y]-1).*X.chi .- params[:y]*(X.m.^2) ).^2 )    
+    aux["k_⟂⟂"] = integrate(X.X, (1 .- X.chi).^2 )
+    aux["k_∥⟂"] = integrate(X.X, (1 .- X.chi) .* (1 .+ (params[:y]-1).*X.chi .- params[:y]*(X.m.^2) ) )
+    
+    # symmetric sector
+    aux["Ts_11"] = prefactor * aux["k_∥∥"] * ( (aux["c_∥"] / aux["Δy"])^2 + (params[:y]-1)*(aux["c_⟂"] / aux["Δ"])^2)
+    aux["Ts_12"] = prefactor * aux["k_∥∥"] * (params[:y]-1)*aux["c_⟂"] * ( (aux["c_∥"] / (aux["Δy"]^2)) + (aux["g"] / (aux["Δ"]^2)) )
+    aux["Ts_21"] = prefactor * aux["k_⟂⟂"] * aux["c_⟂"] * ( (aux["c_∥"] / (aux["Δy"]^2)) + (aux["g"] / (aux["Δ"]^2)) )
+    aux["Ts_22"] = prefactor * aux["k_⟂⟂"] * ( (params[:y]-1)*(aux["c_⟂"] / aux["Δy"])^2 + (aux["g"] / aux["Δ"])^2)
+     
+
+    eigs_Lambda_S = eigen([aux["Ts_11"] aux["Ts_12"]; aux["Ts_21"] aux["Ts_22"]]).values
+    
+    @assert isreal(eigs_Lambda_S[1])
+    @assert isreal(eigs_Lambda_S[2])
+
+    aux["Lambda_S"] = maximum(eigs_Lambda_S)
+
+    
+
+    ## A -sector
+    
+    aux["a11"] = (2 +(params[:y]-2)*params[:r]^2) / params[:y]
+    aux["a12"] = (params[:y]-2)*aux["c_⟂"] / params[:y]^2
+    aux["a21"] = 2*aux["c_⟂"] 
+    aux["a22"] = (params[:y]-2+2*params[:r]^2) / params[:y]
+    
+    aux["e1_inv"] = aux["Δ"]*aux["Δy"]
+    aux["e2_inv"] = aux["Δ"]^2
+    
+    aux["Ta_11"] = params[:α]*params[:β]^2 * aux["k_∥⟂"] * ( (aux["a11"]^2 / aux["e1_inv"]) + (aux["a12"]*aux["a21"]/aux["e2_inv"]))
+    aux["Ta_12"] = params[:α]*params[:β]^2 * aux["k_∥⟂"] * aux["a12"] * ( (aux["a11"] / aux["e1_inv"]) + (aux["a22"]/aux["e2_inv"]))
+    aux["Ta_21"] = params[:α]*params[:β]^2 * aux["k_⟂⟂"] * aux["a21"] * ( (aux["a11"] / aux["e1_inv"]) + (aux["a22"]/aux["e2_inv"]))
+    aux["Ta_22"] = params[:α]*params[:β]^2 * aux["k_⟂⟂"] * ( (aux["a12"]*aux["a21"]/aux["e1_inv"]) + (aux["a22"]^2 / aux["e2_inv"]) )
+    
+    eigs_Lambda_A = eigen([aux["Ta_11"] aux["Ta_12"]; aux["Ta_21"] aux["Ta_22"]]).values
+    
+    @assert isreal(eigs_Lambda_A[1])
+    @assert isreal(eigs_Lambda_A[2])
+
+
+    if params[:y]==2
+        aux["Lambda_A"] = params[:α] * params[:β]^2 *aux["k_∥⟂"] / (aux["Δ"]*aux["Δy"])
+    else
+        aux["Lambda_A"] = maximum(eigs_Lambda_A)
+    end
+
+    ## Y -sector
+    if params[:y]>=4
+        aux["Lambda_Y"] = params[:α] * params[:β]^2 * params[:r]^4 * aux["k_⟂⟂"] / aux["Δ"]^2
+    else
+        aux["Lambda_Y"] = -Inf
+    end
+
+
+    aux["max_Lambda"] = max(aux["Lambda_S"], aux["Lambda_A"], aux["Lambda_Y"])
+    aux["is_RS_stable"] =  aux["max_Lambda"] < 1.0 
+    
+end
+
+
