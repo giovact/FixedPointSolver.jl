@@ -60,6 +60,21 @@ function trace_CurieWeiss(C::HomogeneousSpin1Half,h,J;return_otherobs = false)
 end
 
 
+function trace_CurieWeiss(C::HomogeneousSpin1Half,h,J;return_otherobs = false)
+    # log-weights of each total magnetisation (degeneracy included); subtract the largest
+    logw = [-CW_energy(C.N, M, h, J) + C.logdos[iM] for (iM, M) in enumerate(C.Magnetization)]
+    c = maximum(logw)
+    Z = 0.0; m = 0.0; m2 = 0.0; mabs = 0.0
+    for (iM, M) in enumerate(C.Magnetization)
+        b = exp(logw[iM] - c)
+        Z += b; m += b * M; m2 += b * M^2; mabs += b * abs(M)
+    end
+    χ = m2 / (Z * C.N * (C.N - 1)) - 1 / (C.N - 1)          # E[ξ^u ξ^v], u ≠ v
+    return_otherobs && return exp(log(Z) + c), m / (C.N * Z), χ, m2 / (C.N^2 * Z), mabs / (C.N * Z)
+    return exp(log(Z) + c), m / (C.N * Z), χ
+end
+
+
 function trace_2spin_samefield(h,J)  
     Z = 4*cosh(h)*cosh(h)*cosh(J) + 4*sinh(h)*sinh(h)*sinh(J)
     m = tanh(h + atanh( tanh(J)*tanh(h) ))
