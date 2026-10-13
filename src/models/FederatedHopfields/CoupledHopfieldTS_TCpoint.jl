@@ -17,23 +17,21 @@
 # iteration converges at the first step whatever the damping. Diagnostics (λ_m, λ_q, λ_t, κ) in compute_aux!.
 
 struct CoupledHopfieldTS_TCpoint <: FPModel
-    params::NamedTuple{(:r,:βT,:γ,:y,:ν),Tuple{FT,FT,FT,Int, Bool}}
+    params::NamedTuple{(:r,:βT,:γ,:y,:ν,:general),Tuple{FT,FT,FT,Int, Bool,Bool}}
     O::NamedVec #vector of orderparameters -> βc, αc
     Oconj::NamedVec #auxiliary -> T (t in P), Th (t-hat in P)
     InnerCW::HomogeneousSpin1Half
     aux::Dict{String,FT} # other stuff
-    general::Bool # false: ansatz (B11) (consistent with Corrupted.jl); true: self/cross RS ansatz
+    #general::Bool # false: ansatz (B11) (consistent with Corrupted.jl); true: self/cross RS ansatz
 end
 
 # constructors
-CoupledHopfieldTS_TCpoint() = CoupledHopfieldTS_TCpoint(1.0,0.8,1.0, 2,false,[0.5, 0.1]) # dummy constructor for testing
-CoupledHopfieldTS_TCpoint(r,βT,γ,y,ν; general::Bool = false) = CoupledHopfieldTS_TCpoint(r,βT,γ,y,ν, [0.5, 0.1]; general = general)
-CoupledHopfieldTS_TCpoint(r,βT,γ,y,ν,O; general::Bool = false) = CoupledHopfieldTS_TCpoint((r=r,βT=βT,γ=γ,y=y,ν=ν),NamedArray(O,[:βc,:αc]),NamedArray([0.0;0.0],[:T,:Th]), HomogeneousSpin1Half(y), Dict{String, FT}(), general)
+CoupledHopfieldTS_TCpoint() = CoupledHopfieldTS_TCpoint(1.0,0.8,1.0, 2,false,true,[0.5, 0.1]) # dummy constructor for testing
+CoupledHopfieldTS_TCpoint(r,βT,γ,y,ν, general) = CoupledHopfieldTS_TCpoint(r,βT,γ,y,ν,general,[0.5, 0.1])
+CoupledHopfieldTS_TCpoint(r,βT,γ,y,ν, general,O) = CoupledHopfieldTS_TCpoint((r=r,βT=βT,γ=γ,y=y,ν=ν,general=general),NamedArray(O,[:βc,:αc]),NamedArray([0.0;0.0],[:T,:Th]), HomogeneousSpin1Half(y), Dict{String, FT}())
 ########################################################## SELF-CONSISTENT EQUATIONS #########################################################
 
-create_model(Model::CoupledHopfieldTS_TCpoint, params) = CoupledHopfieldTS_TCpoint(params,Model.O, Model.Oconj, HomogeneousSpin1Half(Int(params[:y])),Dict{String,Float64}(), Model.general)
-
-set_integrationmethod(Model::CoupledHopfieldTS_TCpoint,X::TI) where TI <: IntegrationMethod = TracedSpin1HalfIntegral(Model,X)
+create_model(Model::CoupledHopfieldTS_TCpoint, params) = CoupledHopfieldTS_TCpoint(params,Model.O, Model.Oconj, HomogeneousSpin1Half(Int(params[:y])),Dict{String,Float64}())
 
 function sanity_checks!(Model::CoupledHopfieldTS_TCpoint)
     Model.params[:βT] >= 1 && throw("You should use a βT < 1 !!!!")
@@ -114,7 +112,7 @@ function expr_muq(Model::CoupledHopfieldTS_TCpoint)
     y, r = params[:y], params[:r]
     χp, χo, Δ, Δy = aux["chi"], aux["chi_perp"], aux["Δ"], aux["Δy"]
     a11 = χp^2 * aux["Cq"] / y^2
-    Model.general || return a11
+    Model.params[:general] || return a11
     a22 = χo^2 * ( (y-1) * (1-r^2)^2 / Δy^2 + (y-1+r^2)^2 / Δ^2 ) / y^2
     detT = (χp * χo * r^2)^2 / (Δ * Δy)^2
     tr = a11 + a22
