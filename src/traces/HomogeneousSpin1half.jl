@@ -30,36 +30,6 @@ GSenergy(N,h,J) = - 0.5*J*N^2 - N*abs(h) + 0.5*J*N
 
 conf_energylist(C::HomogeneousSpin1Half, h,J) = [CW_energy(C.N, C.Magnetization[i],h,J) for i=1:length(C.Magnetization)]
 
-
-function trace_CurieWeiss(C::HomogeneousSpin1Half,h,J;return_otherobs = false)
-    if C.N == 2
-        return trace_2spin_samefield(h,J)
-    end
-    # # remember, this compute the trace of exp( J \sum_{i<j} σ_i σ_j + h \sum_i σ_i)
-    # the coupling J is NOT rescaled by N automatically, so you have to put manually the division factor. 
-    Z = 0.0
-    m = 0.0
-    χ = 0.0
-
-    m2 = 0.0
-    mabs = 0.0
-    
-    mE_gs = - GSenergy(C.N,h,J)
-    additive_constant = mE_gs
-    for (iM,M) in enumerate(C.Magnetization)
-        b = exp(- CW_energy(C.N,M,h,J; c = additive_constant ) + C.logdos[iM] ) 
-        Z += b 
-        m += b* M
-        χ += b* M ^2  # check
-        m2 +=b * M^2
-        mabs +=b * abs(M)
-    end
-
-    return_otherobs && return exp(log(Z) + additive_constant) , m/(C.N*Z) , χ / (Z*C.N*(C.N-1)) - 1/(C.N-1), m2/(C.N^2*Z), mabs/(C.N * Z)  #check actually it is correct
-    return exp(log(Z) + additive_constant) , m/(C.N*Z) , χ / (Z*C.N*(C.N-1)) - 1/(C.N-1)
-end
-
-
 function trace_CurieWeiss(C::HomogeneousSpin1Half,h,J;return_otherobs = false)
     # log-weights of each total magnetisation (degeneracy included); subtract the largest
     logw = [-CW_energy(C.N, M, h, J) + C.logdos[iM] for (iM, M) in enumerate(C.Magnetization)]
