@@ -119,7 +119,11 @@ include("Perceptron/SymmetricPerceptronTSQuenchedGibbs.jl")
 
 include("FederatedHopfields/v2_Corrupted_y2_RSB1_gianluca.jl")
 include("FederatedHopfields/Corrupted.jl")
-include("FederatedHopfields/CorruptedGeneral.jl")
+#include("FederatedHopfields/CorruptedGeneral.jl")
+
 include("FederatedHopfields/HopfieldTS.jl")
 include("FederatedHopfields/CoupledHopfieldTS.jl")
+include("FederatedHopfields/CoupledHopfieldsTSNEW.jl")
+include("FederatedHopfields/CoupledHopfieldTSGeneralAnsatz.jl")
+
 include("FederatedHopfields/CoupledHopfieldTS_TCpoint.jl")
