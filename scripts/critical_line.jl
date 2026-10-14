@@ -216,11 +216,11 @@ for iploop in eachindex(ploop_values)
     rm(string(dir,"/Scans/",filepath, "_RES.txt"))
 
 
+    if iploop==1
+        names_obs["names_obs"] = readdlm(string(dir,"/Scans/",filepath, "_names.txt"))
+    end
     if p_args["saveeachscan"]
         scans[ploop_v] = readdlm(string(dir,"/Scans/",filepath, ".txt"))
-        if iploop==1
-            names_obs["names_obs"] = readdlm(string(dir,"/Scans/",filepath, "_names.txt"))
-        end
     end
 
     if iploop==1
