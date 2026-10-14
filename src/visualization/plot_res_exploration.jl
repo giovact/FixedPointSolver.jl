@@ -108,7 +108,7 @@ function plot_res_exploration(final_path::String; horiz_lines::Vector{FT} = [0.0
         @assert length(unique(vals))<=3
         axs_conv[iO].set_xlim(extrema(xvalues));axs_conv[iO].set_ylim(extrema(yvalues))
             
-        axs_conv[iO].pcolormesh(xvalues, yvalues, add_rgb_to_discrete_pcolormesh(vals', cm_conv, [-1;0;1]),rasterized=rasterization)
+        axs_conv[iO].pcolormesh(xvalues, yvalues, vals', cmap = cm_conv, norm = pltcolors.BoundaryNorm([-1.5; -0.5; 0.5; 1.5], cm_conv.N), rasterized=rasterization)
         iO != length(O0vec) && axs_conv[iO].set_xticklabels([])
         println("init -> ",O0vec[iO],"  convergence countmap -> ", countmap(vals))
 
@@ -122,7 +122,7 @@ function plot_res_exploration(final_path::String; horiz_lines::Vector{FT} = [0.0
 
     #old command to set norm with boundary norm -> normm = pltcolors.BoundaryNorm([-1.5; -.5; .5; 1.5], cm_conv.N+1)
     ax_cbar_conv = axs_conv[1].inset_axes([0.0,1.0,1.0,0.2])
-    cbar_conv = fig.colorbar(cms.ScalarMappable(cmap=cm_conv),cax=ax_cbar_conv, orientation="horizontal",location="top", ticks = [], pad = 0.0)
+    cbar_conv = fig.colorbar(cms.ScalarMappable(cmap=cm_conv),cax=ax_cbar_conv, orientation="horizontal",ticklocation="top", ticks = [], pad = 0.0)
     for (iv, xv) in enumerate([-1; 0;1])
         cbar_conv.ax.text(iv / 3 - 1/6 , 0.5, xv, ha="center", va="center", fontsize = ft-2)
     end
@@ -137,7 +137,7 @@ function plot_res_exploration(final_path::String; horiz_lines::Vector{FT} = [0.0
         vals .= data["res"]["f_ranking"][:,:,iO]
         axs_frank[iO].set_xlim(extrema(xvalues));axs_frank[iO].set_ylim(extrema(yvalues))
         @assert sum(isnan.(vals))==0
-        axs_frank[iO].pcolormesh(xvalues, yvalues, add_rgb_to_discrete_pcolormesh(vals', cm_rank, collect(1:length(O0vec))), cmap = cm_rank,rasterized=rasterization)
+        axs_frank[iO].pcolormesh(xvalues, yvalues, vals', cmap = cm_rank, norm = pltcolors.BoundaryNorm(collect(0.5:1:length(O0vec)+0.5), cm_rank.N), rasterized=rasterization)
         iO != length(O0vec) && axs_frank[iO].set_xticklabels([])
 
         data["input_args"]["param_loop"][1][5]=="exp10" && axs_frank[iO].set_xscale("log")
@@ -148,7 +148,7 @@ function plot_res_exploration(final_path::String; horiz_lines::Vector{FT} = [0.0
     end
   
     ax_cbar_rank = axs_frank[1].inset_axes([0.0,1.0,1.0,0.2])
-    cbar_rank = fig.colorbar(cms.ScalarMappable(cmap=cm_rank),cax=ax_cbar_rank, orientation="horizontal",location="top", ticks = [], pad = 0.0)
+    cbar_rank = fig.colorbar(cms.ScalarMappable(cmap=cm_rank),cax=ax_cbar_rank, orientation="horizontal",ticklocation="top", ticks = [], pad = 0.0)
     for (iv, xv) in enumerate(collect(1:length(O0vec)))
         cbar_rank.ax.text(xv / length(O0vec) .- 1/(2*length(O0vec)), 0.5, xv, ha="center", va="center", fontsize = ft-2)
     end
