@@ -88,7 +88,7 @@ function free_energy(Model::HopfieldTS,X::TI) where TI <: IntegrationMethod
 
 end
 
-_isSignalR(Model::HopfieldTS,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod = Model.O[:M] > 1e-2
+_isSignalR(Model::HopfieldTS,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod = Model.O[:M] > 1e-3
 _isSignalR_1em3(Model::HopfieldTS,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod = Model.O[:M] > 1e-3
 
 
