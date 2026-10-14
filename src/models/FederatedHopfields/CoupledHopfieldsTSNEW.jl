@@ -164,6 +164,8 @@ end
 
 _isSG(Model::CoupledHopfieldsTSNEW,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod = Model.O[:Q] < 1e-5 && Model.O[:P] < 1e-5
 _isSignalR(Model::CoupledHopfieldsTSNEW,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod = Model.O[:M] > 1e-2
+_isNOTSignalR(Model::CoupledHopfieldsTSNEW,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod = Model.O[:M] <1e-2
+
 _isExampleR(Model::CoupledHopfieldsTSNEW,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod = Model.O[:P] > 1e-4 && Model.O[:M] < 1e-5
 _isParamagnetic(Model::CoupledHopfieldsTSNEW,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod = Model.O[:M] < 1e-3
 
