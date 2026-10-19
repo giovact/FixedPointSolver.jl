@@ -114,5 +114,39 @@ _is_RS_stable(Model::HopfieldTS, X::TI, Oold::NamedVec,tol::FT) where TI <: Inte
 function compute_aux!(Model::HopfieldTS,X::TI) where TI <: IntegrationMethod
     Model.aux["eig_DAT"] = eig_DAT(Model,X)
     Model.aux["is_RS_stable"] = Model.aux["eig_DAT"] > 0
+    # instability of an SG fixed point (M = 0) towards the signal: loop gain λm = α ϱ X/(1-X) with X = β(1-Q) the SG
+    # susceptibility and ϱ = βT r²/(1-βT); λm > 1 means that M = 0 is unstable (only meaningful at M = 0)
+    Model.aux["X"] = 1 - DeltaS(Model)
+    Model.aux["λm"] = Model.params[:α] * Model.params[:βT] * Model.params[:r]^2 / DeltaT(Model) * Model.aux["X"] / (1 - Model.aux["X"])
+    Model.aux["is_SG_unstable"] = Model.aux["λm"] > 1
+    Model.aux
 end
+
+# true while the fixed point is a stable SG (keepgoing function for critical_line.jl: scanning α at fixed β stops at the SG -> signal line)
+_isSGstable(Model::HopfieldTS,X::TI,Oold::NamedVec,tol::FT) where TI <: IntegrationMethod = Model.O[:M] < 1e-3 && Model.aux["λm"] < 1
+
+########################################################## SG -> SIGNAL LINE (RS, one scalar equation) #########################################################
+# Below the triple point the SG (M = 0) becomes unstable towards the signal when α ϱ X/(1-X) = 1, with X = β(1-Q) the SG
+# susceptibility and ϱ = βT r²/(1-βT). Imposing X = 1/(1+αϱ) fixes Q = 1 - X T and ΔS = 1 - X, so the RS SG equation becomes a
+# single equation in (α, T). It is written as X = β E_z sech²(β h z) = (1/h) ∫ du φ(u T/h) sech²(u), h = sqrt(αQ)/ΔS, which stays
+# smooth down to T = 0. Limits: α = 1/ϱ² at T_c = 1 + 1/ϱ (triple point), α = π/(2ϱ²) at T = 0, α ≈ α_c [1 + (2/3)(1 - T/T_c)²]
+# near T_c. Derivation: dAT_SDN/HopfieldTS_1RSB/HopfieldTS_1RSB.pdf.
+function residual_SGsignal_RS(α, T, ϱ)
+    X = 1 / (1 + α * ϱ)
+    h = sqrt(α * (1 - X * T)) / (1 - X)
+    I = T == 0 ? 2 / sqrt(2π) : quadgk(u -> exp(-0.5 * (u * T / h)^2) / (sqrt(2π) * cosh(u)^2), -Inf, Inf)[1]
+    return I / h - X
+end
+
+# α of the SG -> signal line at temperature T (NaN above the triple point, where there is no SG phase)
+function alpha_SGsignal_RS(T, r, βT)
+    ϱ = βT * r^2 / (1 - βT)
+    T >= 1 + 1/ϱ && return NaN
+    lo, hi = (1 + 1e-12) / ϱ^2, 2 / ϱ^2
+    while residual_SGsignal_RS(hi, T, ϱ) * residual_SGsignal_RS(lo, T, ϱ) > 0
+        hi *= 2
+    end
+    return find_zero(α -> residual_SGsignal_RS(α, T, ϱ), (lo, hi), Roots.Brent(); xatol = 1e-12)
+end
+alpha_SGsignal_RS(Model::HopfieldTS) = alpha_SGsignal_RS(1 / Model.params[:β], Model.params[:r], Model.params[:βT])
 
