@@ -12,7 +12,7 @@
 # so every average is over z (the outer quadrature X.X of the library) and over the y private
 # Gaussians z_u (inner quadrature of PrivateNoiseIntegral below).
 
-struct CoupledHopfieldGeneralAnsatz <: FPModel
+struct CoupledHopfieldTSGeneralAnsatz <: FPModel
     params::NamedTuple{(:β,:α,:r,:βT,:γ,:y,:ν),Tuple{FT,FT,FT,FT,FT,Int, Bool}}
     O::NamedVec      # order parameters  -> M, P, Q (cross q), Qt (self qt), T
     Oconj::NamedVec  # conjugates        -> M, Q (cross qhat), Qt (self qthat), T
@@ -21,14 +21,14 @@ struct CoupledHopfieldGeneralAnsatz <: FPModel
 end
 
 # constructors
-CoupledHopfieldGeneralAnsatz() = CoupledHopfieldGeneralAnsatz(.1, .1, 1.0, .1, 1.0, 2, false, ones(5)) # dummy constructor for testing
-CoupledHopfieldGeneralAnsatz(β,α,r,βT,γ,y,ν) = CoupledHopfieldGeneralAnsatz(β,α,r,βT,γ,y,ν,zeros(5))
-CoupledHopfieldGeneralAnsatz(β,α,r,βT,γ,y,ν,O) = CoupledHopfieldGeneralAnsatz((β=β,α=α,r=r,βT=βT,γ=γ,y=y,ν=ν),NamedArray(O,[:M;:P;:Q;:Qt;:T]),NamedArray(zeros(4),[:M;:Q;:Qt;:T]), HomogeneousSpin1Half(y),Dict{String,FT}())
+CoupledHopfieldTSGeneralAnsatz() = CoupledHopfieldTSGeneralAnsatz(.1, .1, 1.0, .1, 1.0, 2, false, ones(5)) # dummy constructor for testing
+CoupledHopfieldTSGeneralAnsatz(β,α,r,βT,γ,y,ν) = CoupledHopfieldTSGeneralAnsatz(β,α,r,βT,γ,y,ν,zeros(5))
+CoupledHopfieldTSGeneralAnsatz(β,α,r,βT,γ,y,ν,O) = CoupledHopfieldTSGeneralAnsatz((β=β,α=α,r=r,βT=βT,γ=γ,y=y,ν=ν),NamedArray(O,[:M;:P;:Q;:Qt;:T]),NamedArray(zeros(4),[:M;:Q;:Qt;:T]), HomogeneousSpin1Half(y),Dict{String,FT}())
 
-create_model(Model::CoupledHopfieldGeneralAnsatz, params) = CoupledHopfieldGeneralAnsatz(params,Model.O, Model.Oconj, HomogeneousSpin1Half(Int(params[:y])),Dict{String,Float64}())
+create_model(Model::CoupledHopfieldTSGeneralAnsatz, params) = CoupledHopfieldTSGeneralAnsatz(params,Model.O, Model.Oconj, HomogeneousSpin1Half(Int(params[:y])),Dict{String,Float64}())
 
 
-function sanity_checks!(Model::CoupledHopfieldGeneralAnsatz)
+function sanity_checks!(Model::CoupledHopfieldTSGeneralAnsatz)
     Model.params[:βT] >= 1 && throw("You should use a βT < 1 !!!!")
     Model.params[:y] < 2 && throw("Use y >= 2 (y = 1 is HopfieldTS.jl)")
 end
@@ -85,7 +85,7 @@ struct PrivateNoiseIntegral{TI <: IntegrationMethod, TP <: IntegrationMethod} <:
 end
 
 # Xpriv: any 1-d Gaussian quadrature of the library with `points` (default: HermiteQuadrature)
-function PrivateNoiseIntegral(Model::CoupledHopfieldGeneralAnsatz, X::TI;
+function PrivateNoiseIntegral(Model::CoupledHopfieldTSGeneralAnsatz, X::TI;
                               Xpriv::TP = HermiteQuadrature(default_npriv(Model.params[:y]))) where {TI <: IntegrationMethod, TP <: IntegrationMethod}
     y = Model.params[:y]
     configs = FT[2 * ((c >> (u-1)) & 1) - 1 for c in 0:2^y-1, u in 1:y]
@@ -99,18 +99,18 @@ print_integration_params(X::PrivateNoiseIntegral) = string(print_integration_par
 # wraps the library quadrature X (over the common z) with the private-noise quadrature; pass an already built
 # PrivateNoiseIntegral(Model, X; Xpriv = HermiteQuadrature(n)) to choose the private nodes yourself
 # (if y has changed in the meantime, e.g. after create_model, the private grid is rebuilt with the default size)
-set_integrationmethod(Model::CoupledHopfieldGeneralAnsatz,X::TI) where TI <: IntegrationMethod = PrivateNoiseIntegral(Model,X)
-set_integrationmethod(Model::CoupledHopfieldGeneralAnsatz,X::PrivateNoiseIntegral) = size(X.configs, 2) == Model.params[:y] ? X : PrivateNoiseIntegral(Model, X.X)
+set_integrationmethod(Model::CoupledHopfieldTSGeneralAnsatz,X::TI) where TI <: IntegrationMethod = PrivateNoiseIntegral(Model,X)
+set_integrationmethod(Model::CoupledHopfieldTSGeneralAnsatz,X::PrivateNoiseIntegral) = size(X.configs, 2) == Model.params[:y] ? X : PrivateNoiseIntegral(Model, X.X)
 
 ########################################################## SELF-CONSISTENT EQUATIONS #########################################################
-DeltaT(Model::CoupledHopfieldGeneralAnsatz) = 1 - Model.params[:βT]
+DeltaT(Model::CoupledHopfieldTSGeneralAnsatz) = 1 - Model.params[:βT]
 # eigenvalues of D = I - β R∘(Q_aa - Q_ab):  Δ (on Π_⊥) and Δy (on Π_∥)
-Delta(Model::CoupledHopfieldGeneralAnsatz)  = 1 - Model.params[:β] + Model.params[:β] * Model.O[:Qt] + Model.params[:β] * Model.params[:r]^2 * (Model.O[:T] - Model.O[:Q])
-Deltay(Model::CoupledHopfieldGeneralAnsatz) = 1 - Model.params[:β] + Model.params[:β] * Model.O[:Qt] - Model.params[:β] * Model.params[:r]^2 * (Model.O[:T] - Model.O[:Q]) * (Model.params[:y] - 1)
+Delta(Model::CoupledHopfieldTSGeneralAnsatz)  = 1 - Model.params[:β] + Model.params[:β] * Model.O[:Qt] + Model.params[:β] * Model.params[:r]^2 * (Model.O[:T] - Model.O[:Q])
+Deltay(Model::CoupledHopfieldTSGeneralAnsatz) = 1 - Model.params[:β] + Model.params[:β] * Model.O[:Qt] - Model.params[:β] * Model.params[:r]^2 * (Model.O[:T] - Model.O[:Q]) * (Model.params[:y] - 1)
 
-is_free_energy_definite(Model::CoupledHopfieldGeneralAnsatz) = (Delta(Model)>0) && (Deltay(Model)>0)
+is_free_energy_definite(Model::CoupledHopfieldTSGeneralAnsatz) = (Delta(Model)>0) && (Deltay(Model)>0)
 
-function Deltas!(Model::CoupledHopfieldGeneralAnsatz)
+function Deltas!(Model::CoupledHopfieldTSGeneralAnsatz)
     @extract Model : params O aux
     β, r, y = params[:β], params[:r], params[:y]
     aux["ΔT"] = DeltaT(Model)
@@ -122,7 +122,7 @@ function Deltas!(Model::CoupledHopfieldGeneralAnsatz)
 end
 
 #### Conjugate order params SP (stationarity of the energetic term)
-function exprOconj!(Model::CoupledHopfieldGeneralAnsatz)
+function exprOconj!(Model::CoupledHopfieldTSGeneralAnsatz)
     @extract Model : O Oconj params aux
     Deltas!(Model)
     β, βT, r, α, y = params[:β], params[:βT], params[:r], params[:α], params[:y]
@@ -136,9 +136,9 @@ function exprOconj!(Model::CoupledHopfieldGeneralAnsatz)
 end
 
 # fields of the local block
-Jeff(Model::CoupledHopfieldGeneralAnsatz) = (Model.params[:β]^Model.params[:ν]) * Model.params[:γ] / Model.params[:y] + (Model.Oconj[:T] - Model.Oconj[:Q])
-sqrt_qhat(Model::CoupledHopfieldGeneralAnsatz) = sqrt(max(Model.Oconj[:Q], 0.0))                    # common field
-sqrt_phat(Model::CoupledHopfieldGeneralAnsatz) = sqrt(max(Model.Oconj[:Qt] - Model.Oconj[:Q], 0.0)) # private fields
+Jeff(Model::CoupledHopfieldTSGeneralAnsatz) = (Model.params[:β]^Model.params[:ν]) * Model.params[:γ] / Model.params[:y] + (Model.Oconj[:T] - Model.Oconj[:Q])
+sqrt_qhat(Model::CoupledHopfieldTSGeneralAnsatz) = sqrt(max(Model.Oconj[:Q], 0.0))                    # common field
+sqrt_phat(Model::CoupledHopfieldTSGeneralAnsatz) = sqrt(max(Model.Oconj[:Qt] - Model.Oconj[:Q], 0.0)) # private fields
 
 # local y-spin block with heterogeneous fields h, coupling J: fills p (Boltzmann weights) and M, returns ln Z
 function local_block!(p, M, configs, S2, h, J, y)
@@ -152,7 +152,7 @@ function local_block!(p, M, configs, S2, h, J, y)
     return log(Z) + c
 end
 
-function inner_trace(Model::CoupledHopfieldGeneralAnsatz, X::PrivateNoiseIntegral; dat::Bool = false)
+function inner_trace(Model::CoupledHopfieldTSGeneralAnsatz, X::PrivateNoiseIntegral; dat::Bool = false)
     @extract Model : params Oconj
     y = params[:y]
     J = Jeff(Model)
@@ -199,7 +199,7 @@ function inner_trace(Model::CoupledHopfieldGeneralAnsatz, X::PrivateNoiseIntegra
     end
 end
 
-function lhs!(Model::CoupledHopfieldGeneralAnsatz,X::PrivateNoiseIntegral,Onew::NamedVec)
+function lhs!(Model::CoupledHopfieldTSGeneralAnsatz,X::PrivateNoiseIntegral,Onew::NamedVec)
     exprOconj!(Model)
     @assert iszero(Onew)
     inner_trace(Model, X)
@@ -215,7 +215,7 @@ end
 # Φ = - y(y-1)/2 that t + y/2 qthat (qt - 1) + y(y-1)/2 qhat q - y mhat m
 #     - α/2 [ ln Δy + (y-1) ln Δ - f_par/Δy - (y-1) f_perp/Δ ] + < ln Z >_{z, z_u}
 # at the current O and Oconj (no recomputation of the conjugates; used for the stationarity checks)
-function Phi_RS(Model::CoupledHopfieldGeneralAnsatz, X::PrivateNoiseIntegral)
+function Phi_RS(Model::CoupledHopfieldTSGeneralAnsatz, X::PrivateNoiseIntegral)
     @extract Model : params O Oconj aux
     Deltas!(Model)
     α, y = params[:α], params[:y]
@@ -229,21 +229,21 @@ function Phi_RS(Model::CoupledHopfieldGeneralAnsatz, X::PrivateNoiseIntegral)
 end
 
 # free energy per student, f = -Φ/(β y)
-function free_energy(Model::CoupledHopfieldGeneralAnsatz,X::TI) where TI <: IntegrationMethod
+function free_energy(Model::CoupledHopfieldTSGeneralAnsatz,X::TI) where TI <: IntegrationMethod
     exprOconj!(Model)
     return - Phi_RS(Model, X) / (Model.params[:β] * Model.params[:y])
 end
 
 # same conventions as Corrupted.jl; the spin glass is detected on the SELF-overlap Qt: in the general ansatz a
 # spin glass can have Q = 0 < Qt (e.g. at γ = 0, where the students freeze independently)
-_isSG(Model::CoupledHopfieldGeneralAnsatz,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod = Model.O[:Qt] < 1e-5 && Model.O[:P] < 1e-5
-_isSignalR(Model::CoupledHopfieldGeneralAnsatz,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod = Model.O[:M] > 1e-2
-_isExampleR(Model::CoupledHopfieldGeneralAnsatz,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod = Model.O[:P] > 1e-4 && Model.O[:M] < 1e-5
-_isParamagnetic(Model::CoupledHopfieldGeneralAnsatz,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod = Model.O[:M] < 1e-3
+_isSG(Model::CoupledHopfieldTSGeneralAnsatz,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod = Model.O[:Qt] < 1e-5 && Model.O[:P] < 1e-5
+_isSignalR(Model::CoupledHopfieldTSGeneralAnsatz,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod = Model.O[:M] > 1e-2
+_isExampleR(Model::CoupledHopfieldTSGeneralAnsatz,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod = Model.O[:P] > 1e-4 && Model.O[:M] < 1e-5
+_isParamagnetic(Model::CoupledHopfieldTSGeneralAnsatz,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod = Model.O[:M] < 1e-3
 
 ########################################################## RS (dAT) STABILITY #########################################################
 """
-    eigs_dat_general!(Model::CoupledHopfieldGeneralAnsatz, X::PrivateNoiseIntegral)
+    eigs_dat_general!(Model::CoupledHopfieldTSGeneralAnsatz, X::PrivateNoiseIntegral)
 
 Replicon stability of the general (self/cross) RS solution (dAT_SDN_v2 notes, section
 "General self/cross ansatz: equations to implement", subsection "Replicon (dAT) instability"). Stored in Model.aux:
@@ -256,7 +256,7 @@ Called by compute_aux! at convergence of solve_SPequations!; NaN-safe (Λ = NaN 
 # largest real eigenvalue, NaN if the matrix is not finite (eigvals would throw)
 maxeig(A) = all(isfinite, A) ? maximum(real.(eigvals(A))) : NaN
 
-function eigs_dat_general!(Model::CoupledHopfieldGeneralAnsatz, X::PrivateNoiseIntegral)
+function eigs_dat_general!(Model::CoupledHopfieldTSGeneralAnsatz, X::PrivateNoiseIntegral)
     @extract Model : aux params
     exprOconj!(Model)
     inner_trace(Model, X; dat = true)
@@ -305,9 +305,31 @@ function eigs_dat_general!(Model::CoupledHopfieldGeneralAnsatz, X::PrivateNoiseI
     return nothing
 end
 
-_is_RS_stable(Model::CoupledHopfieldGeneralAnsatz,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod = Model.aux["max_Lambda"] < 1.0
+_is_RS_stable(Model::CoupledHopfieldTSGeneralAnsatz,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod = Model.aux["max_Lambda"] < 1.0
 
 # called by solve_SPequations! at convergence (after free_energy!), as for Corrupted.jl
-function compute_aux!(Model::CoupledHopfieldGeneralAnsatz,X::PrivateNoiseIntegral)
+function compute_aux!(Model::CoupledHopfieldTSGeneralAnsatz,X::PrivateNoiseIntegral)
     eigs_dat_general!(Model, X)
+    SG_signal_instability!(Model)
 end
+
+# Instability of an SG fixed point (M = 0) towards the signal (single student: HopfieldTS.jl; notes dAT_SDN/HopfieldTS_1RSB, Sec. 7).
+# A perturbation δm_u creates the fields δm̂_u = (α βT β r²/ΔT) Σ_v (D⁻¹)_uv δm_v, D = Δy Π_∥ + Δ Π_⊥, and responds through the
+# averaged connected correlations of the local block, <χ> = χ_∥ Π_∥ + χ_⊥ Π_⊥ (average over z and the private fields z_u):
+#   λm_sym = (α βT β r²/ΔT) χ_∥/Δy,   λm_anti = (α βT β r²/ΔT) χ_⊥/Δ,
+# with, by the sum rules of the block, χ_∥ = 1 + (y-1)T - Qt - (y-1)Q and χ_⊥ = 1 - Qt - T + Q. λm > 1: M = 0 unstable
+# (only meaningful at M = 0). At γ = 0 the students are independent and λm_sym is the single-student loop gain.
+function SG_signal_instability!(Model::CoupledHopfieldTSGeneralAnsatz)
+    @extract Model : params O aux
+    y = params[:y]
+    pre = params[:α] * params[:βT] * params[:β] * params[:r]^2 / DeltaT(Model)
+    aux["χ_∥"] = 1 + (y - 1) * O[:T] - O[:Qt] - (y - 1) * O[:Q]
+    aux["χ_⊥"] = 1 - O[:Qt] - O[:T] + O[:Q]
+    aux["λm_sym"] = pre * aux["χ_∥"] / Deltay(Model)
+    aux["λm_anti"] = pre * aux["χ_⊥"] / Delta(Model)
+    aux["λm"] = max(aux["λm_sym"], aux["λm_anti"])
+    aux["is_SG_unstable"] = aux["λm"] > 1
+end
+
+# true while the fixed point is a stable SG (keepgoing function for critical_line.jl: scanning α at fixed β stops at the SG -> signal line)
+_isSGstable(Model::CoupledHopfieldTSGeneralAnsatz,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod = Model.O[:M] < 1e-3 && Model.aux["λm"] < 1

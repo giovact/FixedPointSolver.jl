@@ -204,8 +204,29 @@ function compute_aux!(Model::CoupledHopfieldsTSNEW,X::TracedSpin1HalfIntegral{TI
 
 #    eigs_dat!(Model, X)
     eigs_dat_divfree!(Model,X)
-    
+    SG_signal_instability!(Model)
+
 end
+
+# Instability of an SG fixed point (M = 0) towards the signal (single student: HopfieldTS.jl; notes dAT_SDN/HopfieldTS_1RSB, Sec. 7).
+# A perturbation δm_u creates the fields δm̂_u = (α βT β r²/ΔT) Σ_v (D⁻¹)_uv δm_v, D = Δy Π_∥ + Δ Π_⊥, and responds through the
+# averaged connected correlations of the local block, <χ> = χ_∥ Π_∥ + χ_⊥ Π_⊥. Loop gains of the consensus and relative modes:
+#   λm_sym = (α βT β r²/ΔT) χ_∥/Δy,   λm_anti = (α βT β r²/ΔT) χ_⊥/Δ,
+# with, by the sum rules of the block, χ_∥ = 1 + (y-1)T - y Q and χ_⊥ = 1 - T (ansatz B11). λm > 1: M = 0 unstable (only meaningful at M = 0).
+function SG_signal_instability!(Model::CoupledHopfieldsTSNEW)
+    @extract Model : params O aux
+    y = params[:y]
+    pre = params[:α] * params[:βT] * params[:β] * params[:r]^2 / DeltaT(Model)
+    aux["χ_∥"] = 1 + (y - 1) * O[:T] - y * O[:Q]
+    aux["χ_⊥"] = 1 - O[:T]
+    aux["λm_sym"] = pre * aux["χ_∥"] / Deltay(Model)
+    aux["λm_anti"] = pre * aux["χ_⊥"] / Delta(Model)
+    aux["λm"] = max(aux["λm_sym"], aux["λm_anti"])
+    aux["is_SG_unstable"] = aux["λm"] > 1
+end
+
+# true while the fixed point is a stable SG (keepgoing function for critical_line.jl: scanning α at fixed β stops at the SG -> signal line)
+_isSGstable(Model::CoupledHopfieldsTSNEW,X::TI,Oold::NamedVec,tol::Float64) where TI <: IntegrationMethod = Model.O[:M] < 1e-3 && Model.aux["λm"] < 1
 
 
 
