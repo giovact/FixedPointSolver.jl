@@ -49,6 +49,13 @@ parse_settings = ArgParseSettings()
     "--damp"
         arg_type = Float64
         default = 0.92
+    "--solver"
+        arg_type = String
+        default = "FixedPoint"
+        range_tester = x -> x in ["FixedPoint", "Anderson"]
+    "--anderson_m"
+        arg_type = Int
+        default = 5
 ####### MISC  #######
     "--suffix" # if needed to distinguish two files created with the same settings 
         arg_type = String
@@ -98,6 +105,7 @@ Loop parameters: $loop_params
 Total number of mesh points in $(loop_params[1]) = $(length(ploop_values[loop_params[1]]))  Extrema = $(extrema(ploop_values[loop_params[1]]))
 Total number of mesh points in $(loop_params[2]) = $(length(ploop_values[loop_params[2]]))  Extrema = $(extrema(ploop_values[loop_params[2]]))
 Total number of runs = $(length(ploop_values[loop_params[1]]) * length(ploop_values[loop_params[2]]))
+Solver: $(parse_solver(p_args, p_args["damp"]))
 *****************************************************************************
 """
 print_and_log(starting_info,exploration_log_file)
@@ -118,7 +126,7 @@ function singlerun(ModelType,loop_params,pl_values,tuple_params, p_args,explorat
     end
     
     filepath = string("MultipleInit_", string(Model),"_",suffix(p_args["suffix"]),replace_Greek(params_to_textstring(Model)),print_integration_params(X),"_tol_",p_args["tol"])
-    teps = @elapsed out = solve_Multiple_initialconditions(Model,X,p_args["OP0"],tol = p_args["tol"], K=FixedPoint(p_args["damp"]), niter = p_args["maxiter"], tosave = p_args["aux_tosave"]  )
+    teps = @elapsed out = solve_Multiple_initialconditions(Model,X,p_args["OP0"],tol = p_args["tol"], K=parse_solver(p_args, p_args["damp"]), niter = p_args["maxiter"], tosave = p_args["aux_tosave"]  )
     writedlm(string(dir,"/SingleRuns/",filepath, ".txt"), out )
 
     log_message(string("on thread ",thid, " Model -> ",ModelType,"  --- params=  ",print_tuple_params(Model), " --> done  in ", teps,"  seconds"), exploration_log_file)

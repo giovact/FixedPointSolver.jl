@@ -62,6 +62,13 @@ parse_settings = ArgParseSettings()
     "--dampfirst"
         arg_type = Float64
         default = 0.96
+    "--solver"
+        arg_type = String
+        default = "FixedPoint"
+        range_tester = x -> x in ["FixedPoint", "Anderson"]
+    "--anderson_m"
+        arg_type = Int
+        default = 5
 ####### MISC  #######
     "--suffix" # if needed to distinguish two files created with the same settings 
         arg_type = String
@@ -114,7 +121,7 @@ function singlerun(ModelType,ploop,ploop_v,scan, tuple_params,p_args,parallel_sc
     filepath = string("Scanning_", string(Model),"_",suffix(p_args["suffix"]),replace_Greek(params_to_textstring(Model;exclude = [scan.param])),print_integration_params(X),"_tol_",p_args["tol"],"_protocol_",p_args["protocol"])
 
     teps = @elapsed out = scanning(Model,scan, X;
-                                        tol = p_args["tol"], K=FixedPoint(p_args["damp"]),Kfirstrun=FixedPoint(p_args["dampfirst"]), niter = p_args["maxiter"], 
+                                        tol = p_args["tol"], K=parse_solver(p_args, p_args["damp"]),Kfirstrun=parse_solver(p_args, p_args["dampfirst"]), niter = p_args["maxiter"], 
                                         printprogress = false,
                                         tosave = p_args["aux_tosave"],
                                         fsave = string(dir,"/Scans/",filepath, "_scan.txt")  )
@@ -131,6 +138,7 @@ starting_info = """
  fixed parameters: $(params_to_textstring(tuple_params;separator="; ",exclude=[ploop;pscan],equalsymbol="="))
  loop parameter: $ploop, number of parallel scan is $(length(ploop_values))
  scan parameter: $pscan, number of mesh points for each scan $(length(pscan_values)), protocol = $(p_args["protocol"])
+ Solver: $(parse_solver(p_args, p_args["damp"])) (first run: $(parse_solver(p_args, p_args["dampfirst"])))
 *****************************************************************************
 """
 print_and_log(starting_info,parallel_scans_log_file)

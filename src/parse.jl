@@ -189,3 +189,10 @@ end
 
 
 parse_integration_method(args) = set_integration_method(args["IntMethod"], args["npointsInt"], args["bound"])
+
+# solver from the command line (--solver, --anderson_m); damp is ρ for both solvers (same convention, see solvers.jl)
+function parse_solver(args, damp::Float64)
+    args["solver"] == "FixedPoint" && return FixedPoint(damp)
+    args["solver"] == "Anderson"   && return Anderson(args["anderson_m"]; ρ = damp)
+    throw("Choose a valid solver -> available now [FixedPoint; Anderson]")
+end

@@ -75,6 +75,13 @@ parse_settings = ArgParseSettings()
     "--dampfirst"
         arg_type = Float64
         default = 0.96
+    "--solver"
+        arg_type = String
+        default = "FixedPoint"
+        range_tester = x -> x in ["FixedPoint", "Anderson"]
+    "--anderson_m"
+        arg_type = Int
+        default = 5
 ####### MISC  #######
     "--aux_tosave"
         nargs = '*'
@@ -138,7 +145,7 @@ function singlerun(ModelType,ploop,ploop_v,pscan,tuple_params, p_args, critical_
     filepath = string(p_args["critical_line_name"],"_", string(Model),"_",replace_Greek(params_to_textstring(Model;exclude = [pscan])),"_scan_over_",replace_Greek(string(pscan)),"_",upordown,"_loop_over_",replace_Greek(string(ploop)),print_integration_params(X),"_protocol_",scancrit.protocol, "_tol_",p_args["tol"],"_tolc_",scancrit.Δptol)
     
     teps = @elapsed out = findcriticalpoint(Model,scancrit, critical_functions[p_args["function"]],X;
-                                        tol = p_args["tol"], K=FixedPoint(p_args["damp"]),Kfirstrun=FixedPoint(p_args["dampfirst"]), niter = p_args["maxiter"], 
+                                        tol = p_args["tol"], K=parse_solver(p_args, p_args["damp"]),Kfirstrun=parse_solver(p_args, p_args["dampfirst"]), niter = p_args["maxiter"], 
                                         printprogress = false,fsave = string(dir,"/Scans/",filepath, ".txt"),
                                         tosave = p_args["aux_tosave"]  )
 
@@ -161,6 +168,7 @@ Fixed parameters: $(params_to_textstring(tuple_params;separator="; ",exclude=[pl
 Critical line name $(p_args["critical_line_name"])
 Loop parameters: $ploop,  number of parallel scan is $(length(ploop_values)) --- Extrema = $(extrema(ploop_values))
 scan parameter: $pscan ###  protocol = $(p_args["protocol"])   --- function $function_name  
+Solver: $(parse_solver(p_args, p_args["damp"])) (first run: $(parse_solver(p_args, p_args["dampfirst"])))
 *****************************************************************************
 """
 print_and_log(starting_info,critical_line_log_file)
