@@ -113,3 +113,26 @@ end
 
 
 _isSignal(Model::FederatedHopfield2SameAlpha, X::TI, Oold::NamedVec,tol::FT) where TI <: IntegrationMethod = (Model.O[:M1] > 1e-1) & (Model.O[:M2] > 1e-1)
+
+########################################################## RS (dAT) STABILITY #########################################################
+# Same replicon analysis as FederatedHopfield2.jl at α1 = α2 = α (derivation: dAT_SDN/dAT_SDD.pdf). The helpers
+# dat_sdd2! and twospin_chis are defined in FederatedHopfield2.jl, which models_list.jl includes before this file.
+# The order parameters M1, M2, Q1, Q2 are kept separate, so the 2x2 operator also covers student-asymmetric solutions;
+# on the symmetric one (M1 = M2, Q1 = Q2) its eigenvalues are Λ± = αβ²(A ± B)/Δ², and the dAT line is αβ²(A + B) = Δ².
+# aux keys: see dat_sdd2!.
+function eigs_dat!(Model::FederatedHopfield2SameAlpha, X::TI) where TI <: IntegrationMethod
+    @extract Model : params Oconj aux
+    exprOconjall!(Model)                                    # Oconj and Δ1, Δ2 at the current O
+    β = params[:β]
+    J = 0.5 * params[:γ] * β^params[:ν]
+    dat_sdd2!(aux, X, β, params[:α], params[:α], J, Oconj, aux["Δ1"], aux["Δ2"])
+end
+
+# called by solve_SPequations! at convergence (after free_energy!)
+compute_aux!(Model::FederatedHopfield2SameAlpha, X::TI) where TI <: IntegrationMethod = eigs_dat!(Model, X)
+
+# keepgoing function for critical_line.jl (--function is_RS_stable): stops when RS becomes unstable (dAT line)
+_is_RS_stable(Model::FederatedHopfield2SameAlpha, X::TI, Oold::NamedVec, tol::FT) where TI <: IntegrationMethod = Model.aux["Lambda_dAT"] < 1.0
+
+# P -> SG line at α1 = α2 = α: (T - 1)² = α (1 + tanh²J), J = γ β^ν / 2 (T_PSG in FederatedHopfield2.jl)
+T_PSG(Model::FederatedHopfield2SameAlpha) = T_PSG(Model.params[:α], Model.params[:α], Model.params[:γ], Model.params[:ν])
